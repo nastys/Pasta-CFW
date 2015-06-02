@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-
+#include "fs.h"
 #include "font.h"
 #include "draw.h"
 
@@ -89,4 +89,34 @@ void DebugNoNewLine(const char *format, ...)
 
 	DrawString(TOP_SCREEN0, str, 10, current_y, RGB(255, 255, 255), RGB(0, 0, 0));
 	DrawString(TOP_SCREEN1, str, 10, current_y, RGB(255, 255, 255), RGB(0, 0, 0));
+}
+
+void drawTop(char splash_file[]) {
+	unsigned int n = 0, bin_size;
+	FileOpen(splash_file);
+	//Load the spash image
+	bin_size = 0;
+	while ((n = FileRead((void*)((u32)TOP_SCREEN0 + bin_size), 0x100000, bin_size)) > 0) {
+		bin_size += n;
+	}
+	u32 *fb1 = (u32*)TOP_SCREEN0;
+	u32 *fb2 = (u32*)TOP_SCREEN1;
+	for (n = 0; n < bin_size; n += 4){
+		*fb2++ = *fb1++;
+	}
+}
+
+void drawBottom(char splash_file[]) {
+	unsigned int n = 0, bin_size;
+	FileOpen(splash_file);
+	//Load the spash image
+	bin_size = 0;
+	while ((n = FileRead((void*)((u32)BOT_SCREEN0 + bin_size), 0x100000, bin_size)) > 0) {
+		bin_size += n;
+	}
+	u32 *fb1 = (u32*)BOT_SCREEN0;
+	u32 *fb2 = (u32*)BOT_SCREEN1;
+	for (n = 0; n < bin_size; n += 4){
+		*fb2++ = *fb1++;
+	}
 }

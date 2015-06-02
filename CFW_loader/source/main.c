@@ -12,6 +12,9 @@ char* systemVersion;
 char type;
 void ioDelay(u32);
 bool dump_arm9;
+int menu_idx=0;
+#define MENU_ITEMS 5
+#define SETTINGS_ITEMS 1
 
 void ClearTop() {
 	ClearScreen(TOP_SCREEN0, RGB(0, 0, 0));
@@ -168,54 +171,57 @@ void bootCFW_SecondStage()
 
 void arm9dumper()
 {
-	Debug("");
-	Debug("");
-	Debug("");
-	Debug("---------------- ARM9 RAM DUMPER ---------------");
-	Debug("");
-	DebugNoNewLine("Press A to DUMP, B to skip.");
-
-	u32 pad_state = InputWait();
-
-
-	if (pad_state & BUTTON_B)Debug("Skipping...");
-	else
+	int settings_idx = 0;
+	while (true)
 	{
-		u32 written = 0;
-		u32 total = 0;
-		u32 result = 0;
-		u32 num = 0;
-		void *addr = 0x08000000;
-		u32 size = 0x00100000;
-		const u32 sz_chunk = 0x10000;
+		//DRAW GUI
+		drawTop("/3ds/PastaCFW/appTOP.bin");
+		drawBottom("/3ds/PastaCFW/dumper0.bin");
+		//APP CONTROLS
+		u32 pad_state = InputWait();
+		if (pad_state & BUTTON_A) //CONTINUE TO DUMPER
+		{
+			drawBottom("/3ds/PastaCFW/dumper1.bin"); //draw UI
+			u32 written = 0;
+			u32 total = 0;
+			u32 result = 0;
+			u32 num = 0;
+			void *addr = 0x08000000;
+			u32 size = 0x00100000;
+			const u32 sz_chunk = 0x10000;
 
-		if (FileCreate("/3ds/PastaCFW/RAM.bin", true)) {
-			while (total < size) {
-				num = size - total < sz_chunk ? size - total : sz_chunk;
-				written = FileWrite((u8 *)addr + total, num, total);
-				if (written != num) break;
-				total += written;
-				DebugNoNewLine("Dumping:                         %07d/%d", total, size);
+			if (FileCreate("/3ds/PastaCFW/RAM.bin", true)) {
+				while (total < size) {
+					num = size - total < sz_chunk ? size - total : sz_chunk;
+					written = FileWrite((u8 *)addr + total, num, total);
+					if (written != num)  break;
+					total += written;
+					DebugNoNewLine("Dumping:                         %07d/%d", total, size);
+				}
+				FileClose();
+				result = (size == total);
 			}
-			FileClose();
-			result = (size == total);
+
+			//draw last screen
+			if (result) drawBottom("/3ds/PastaCFW/dumper2OK.bin"); //DUMPED SUCCESSFULLY
+			else  drawBottom("/3ds/PastaCFW/dumper2E.bin"); //DUMP ERROR
+
+			while (true)//Press A to continue
+			{
+				pad_state = InputWait();
+				if (pad_state == BUTTON_A) break;
+			}		
 		}
-		Debug("");
-		Debug("");
-		Debug("Dump %s! Press any key to boot CFW.", result ? "finished" : "failed");
-		InputWait();
+		else if (pad_state & BUTTON_B) break; //EXIT BACK TO MENU 
+		break;
 	}
 }
 
-int main() {
-
+void bootCFW()
+{
 	//BOOT
 	ClearTop();
 	Debug("--------------- PASTA CFW LOADER ---------------");
-	Debug("");
-	DebugNoNewLine("Initializing FS...");
-	InitFS();
-	Debug("Initializing FS...                         Done!");
 	Debug("");
 	DebugNoNewLine("Getting system information...");
 	getSystemVersion();
@@ -224,8 +230,64 @@ int main() {
 	Debug("Your system is %s", systemVersion);
 	Debug("");
 	bootCFW_SecondStage();
-	if (dump_arm9 == true)arm9dumper();
+}
 
+void settings()
+{
+	int settings_idx=0;
+	while (true)
+	{
+		//DRAW GUI
+		drawTop("/3ds/PastaCFW/appTOP.bin");
+		drawBottom("/3ds/PastaCFW/options.bin");
+        //APP CONTROLS
+		u32 pad_state = InputWait();
+		if (pad_state & BUTTON_DOWN && settings_idx != SETTINGS_ITEMS - 1) settings_idx++; //MOVE DOWN
+		else if (pad_state & BUTTON_UP && settings_idx != 0) settings_idx--; //MOVE UP
+		else if (pad_state & BUTTON_A)
+		{
+			//SAVE SETTINGS
+			break;
+		}
+		else if (pad_state & BUTTON_B) break; //EXIT WITHOUT SAVING 
+	}
+}
+
+
+
+int main() {	
+	
+	InitFS();
+	ClearTop();
+	//MENU
+	while (true)
+	{
+		//DRAW GUI
+		if (menu_idx == MENU_ITEMS - 1)
+		{
+			drawTop("/3ds/PastaCFW/creditsTOP.bin");
+			drawBottom("/3ds/PastaCFW/creditsBOT.bin");
+		}
+		else
+		{
+			char path[] = "/3ds/PastaCFW/menu0.bin";
+			path[18] = menu_idx + 48;
+            drawBottom(path); //BOTTOM SCREEN
+			drawTop("/3ds/PastaCFW/menuTOP.bin"); //TOP SCREEN
+		}
+		
+		//MENU CONTROLS
+		u32 pad_state = InputWait();
+		if (pad_state & BUTTON_RIGHT && menu_idx != MENU_ITEMS - 1) menu_idx++; //MOVE RIGHT
+		else if (pad_state & BUTTON_LEFT && menu_idx != 0)menu_idx--; //MOVE LEFT
+		else if (pad_state & BUTTON_A)//SELECT
+		{
+			if (menu_idx == 0){bootCFW(); break;}//BOOT CFW
+			else if (menu_idx == 1)break; //REBOOT
+			else if (menu_idx == 2)arm9dumper(); //ARM9 RAM DUMPER
+			else if (menu_idx == 3)settings(); //SETTINGS
+		}
+	}
 	// return control to FIRM ARM9 code (performs firmlaunch)
 	return 0;
 }

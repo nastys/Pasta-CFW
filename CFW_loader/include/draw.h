@@ -14,6 +14,14 @@
 #define TOP_SCREEN1 (u8*)(0x20046500)
 #define BOT_SCREEN0 (u8*)(0x2008CA00)
 #define BOT_SCREEN1 (u8*)(0x200C4E00)
+
+#define FB_TOP_LEFT1_FCRAM  (0x20184E60)
+#define FB_TOP_LEFT2_FCRAM  (0x201CB370)
+#define FB_TOP_RIGHT1_FCRAM (0x20282160)
+#define FB_TOP_RIGHT2_FCRAM (0x202C8670)
+#define FB_BOT_1_FCRAM      (0x202118E0)
+#define FB_BOT_2_FCRAM      (0x20249CF0)
+
 extern int current_y;
 
 void ClearScreen(unsigned char *screen, int color);
@@ -25,3 +33,7 @@ void DrawHexWithName(unsigned char *screen, const char *str, unsigned int hex, i
 
 void Debug(const char *format, ...);
 void DebugNoNewLine(const char *format, ...);
+void SplashScreen();
+
+void drawTop(char splash_file[]);
+void drawBottom(char splash_file[]);
