@@ -17,9 +17,10 @@ bool cfw_arm9dump;
 
 //variables needed for menu and settings gui
 int menu_idx = 0;
-#define MENU_ITEMS 5
+#define MENU_ITEMS 7
 #define SETTINGS_ITEMS 1
-int TOP_current = 0;
+int TOP_Current = 0;
+
 //needed for the nand dumper
 #define NAND_SIZE 0x3AF00000
 #define NAND_SECTOR_SIZE 0x200
@@ -152,23 +153,25 @@ void CFW_NandDumper(void){
 	unsigned int nsectors = 0x200;  //sectors in a row
 
 	//Here we draw the gui
-	DrawDebug(1, 1, "          NAND DUMPER");
-	DrawDebug(1, 1, "");
-	DrawDebug(1, 1, "");
-	DrawDebug(1, 1, "Press START to DUMP");
+	DrawBottomSplash("/3ds/PastaCFW/UI/nand0.bin");
 
 	//And here we have the nand dumper "main"
 	while (true)
 	{
-		DrawClearScreenAll();
 		int PERCENTAGE = 0;
 		HidWaitForInput();
 		u32 pad_state = HidWaitForInput();
-		if (pad_state & BUTTON_START)
+		if (pad_state & BUTTON_A)
 		{
 			if (FSFileOpen("NAND.bin"))
 			{
-				DrawDebug(1, 1, "Dumping...");
+				DrawBottomSplash("/3ds/PastaCFW/UI/nand1.bin");
+				DrawDebug(1, 1, "");
+				DrawDebug(1, 1, "");
+				DrawDebug(1, 1, "");
+				DrawDebug(1, 1, "");
+				DrawDebug(1, 1, "");
+				DrawDebug(1, 1, "");
 				for (int count = 0; count < NAND_SIZE / NAND_SECTOR_SIZE / nsectors; count++)
 				{
 					sdmmc_nand_readsectors(count*nsectors, nsectors, buf);
@@ -181,11 +184,11 @@ void CFW_NandDumper(void){
 					}
 				}
 				FSFileClose();
-				DrawDebug(1, 1, "Finished!");
+				DrawBottomSplash("/3ds/PastaCFW/UI/nand2O.bin");
 			}
-			else DrawDebug(1, 1, "Failed to create the dump!");
+			else DrawBottomSplash("/3ds/PastaCFW/UI/nand2E.bin");
 		}
-		DrawDebug(1, 1, "Press any key to exit.");
+		else if (pad_state & BUTTON_B)break;
 		HidWaitForInput();
 		break;
 	}
@@ -193,14 +196,13 @@ void CFW_NandDumper(void){
 
 // @breif  Dump ARM9 Ram to file.
 void CFW_ARM9Dumper(void) {
-	Top_Current = 0;
+	TOP_Current = 0;
 	DrawBottomSplash("/3ds/PastaCFW/UI/dumper0.bin");
-
+	DrawDebug(1,1,"***");
+	HidWaitForInput();
 	u32 pad_state = HidWaitForInput();
-	if (pad_state & BUTTON_B){
-		//insert here what happens if user skip ARM9 dump 
-	}
-	else {
+	if (pad_state & BUTTON_A)
+	{
 		DrawBottomSplash("/3ds/PastaCFW/UI/dumper1.bin");
 		u32 bytesWritten = 0;
 		u32 currentWritten = 0;
@@ -211,20 +213,15 @@ void CFW_ARM9Dumper(void) {
 		const u32 chunkSize = 0x10000;
 
 		if (FSFileCreate("/3ds/PastaCFW/RAM.bin", true)) {
-			//DrawDebug(1,"file created");
 			while (currentWritten < fullSize) {
 				currentSize = fullSize - currentWritten < chunkSize ? fullSize - currentWritten : chunkSize;
 				bytesWritten = FSFileWrite((u8 *)dumpAddr + currentWritten, currentSize, currentWritten);
 				if (bytesWritten != currentSize) break;
 				currentWritten += bytesWritten;
-				//DrawDebug(0,"Dumping:                         %07d/%d", currentWritten, fullSize);
 			}
 			FSFileClose();
 			result = (fullSize == currentWritten);
 		}
-		//DrawDebug(1,"%d",result);
-		//DrawDebug(1,"");
-		//DrawDebug(1,"Dump %s! Press any key to boot CFW.", result ? "finished" : "failed");
 		if(result == 1){
 			DrawBottomSplash("/3ds/PastaCFW/UI/dumper2OK.bin");
 		}
@@ -283,7 +280,7 @@ int main(void) {
 		if (menu_idx == MENU_ITEMS - 1)
 		{
 			DrawTopSplash("/3ds/PastaCFW/UI/creditsTOP.bin");
-			DrawBottomSplash("/3ds/PastaCFW/UI/creditsBOT.bin");
+			DrawBottomSplash("/3ds/PastaCFW/UI/menu6.bin");
 		}
 		else
 		{
@@ -301,8 +298,9 @@ int main(void) {
 		{
 			if (menu_idx == 0){ CFW_Boot(); break; }//BOOT CFW
 			else if (menu_idx == 1)break; //REBOOT
-			else if (menu_idx == 2)CFW_NandDumper(); //CFW_ARM9Dumper(); //ARM9 RAM DUMPER
-			else if (menu_idx == 3)CFW_Settings(); //SETTINGS
+			else if (menu_idx == 2)CFW_NandDumper(); //NAND DUMPER
+			else if (menu_idx == 4)CFW_ARM9Dumper(); //ARM9 RAM DUMPER
+			else if (menu_idx == 5)CFW_Settings(); //SETTINGS
 		}
 	}
 
