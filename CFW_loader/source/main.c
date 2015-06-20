@@ -6,6 +6,7 @@
 #include "textmenu.h"
 #include "platform.h"
 #include "draw.h"
+#include "crypto.h"
 
 //This contains the System Firmware Version String.
 char* cfw_FWString;
@@ -19,14 +20,19 @@ int menu_idx = 0;
 #define MENU_ITEMS 5
 #define SETTINGS_ITEMS 1
 
+//needed for the nand dumper
+#define NAND_SIZE 0x3AF00000
+#define NAND_SECTOR_SIZE 0x200
+#define BUF1 0x21000000
+
 //[Unused]
 //void ioDelay(u32);
 
 // @breif  [Unused]Simply wait for a key, but not use its value.
 // @note   Work like a pause.
 void CFW_WaitKey(void) {
-	DrawDebug(1,"");
-	DrawDebug(1,"Press key to continue");
+	DrawDebug(0,1,"");
+	DrawDebug(0,1,"Press key to continue");
 	HidWaitForInput();
 }
 
@@ -88,7 +94,7 @@ void CFW_SecondStage(void) {
 	u8 patchN2[] = { 0x6D, 0x20, 0xCE, 0x77 };
 	u8 patchN3[] = { 0x5A, 0xC5, 0x73, 0xC1 };
 	//Apply patches
-	DrawDebug(0,"Apply patch for type %c...", cfw_FWValue);
+	DrawDebug(0,0,"Apply patch for type %c...", cfw_FWValue);
     switch(cfw_FWValue) {
         //Old-3DS
     	case '1': // 4.x
@@ -137,21 +143,65 @@ void CFW_SecondStage(void) {
     		memcpy((u32*)0x08058804, patchN3, 4);
     		break;
     }
-	DrawDebug(1,"Apply patch for type %c...                  Done!", cfw_FWValue);
+	DrawDebug(0,1,"Apply patch for type %c...                  Done!", cfw_FWValue);
+}
+
+void CFW_NandDumper(void){
+	//Nand dumper
+	unsigned char* buf = 0x21000000;
+	unsigned int nsectors = 0x200;  //sectors in a row
+
+	//Here we draw the gui
+	DrawDebug(1, 1, "          NAND DUMPER");
+	DrawDebug(1, 1, "");
+	DrawDebug(1, 1, "");
+	DrawDebug(1, 1, "Press START to DUMP");
+
+	//And here we have the nand dumper "main"
+	while (true)
+	{
+		int PERCENTAGE = 0;
+		HidWaitForInput();
+		u32 pad_state = HidWaitForInput();
+		if (pad_state & BUTTON_START)
+		{
+			if (FSFileOpen("NAND.bin"))
+			{
+				DrawDebug(1, 1, "Dumping...");
+				for (int count = 0; count < NAND_SIZE / NAND_SECTOR_SIZE / nsectors; count++)
+				{
+					sdmmc_nand_readsectors(count*nsectors, nsectors, buf);
+
+					FSFileWrite(buf, nsectors*NAND_SECTOR_SIZE, count*NAND_SECTOR_SIZE*nsectors);
+					if ((count % (int)(NAND_SIZE / NAND_SECTOR_SIZE / nsectors / 100)) == 0 && count != 0)
+					{
+						PERCENTAGE++;
+						DrawDebug(1, 0, "%d%%", PERCENTAGE);
+					}
+				}
+				FSFileClose();
+				DrawDebug(1, 1, "Finished!");
+			}
+			else DrawDebug(1, 1, "Failed to create the dump!");
+		}
+		DrawDebug(1, 1, "Press any key to exit.");
+		HidWaitForInput();
+		break;
+	}
 }
 
 // @breif  Dump ARM9 Ram to file.
 void CFW_ARM9Dumper(void) {
 	DrawClearScreenAll();
-	DrawDebug(1,"");
-	DrawDebug(1,"");
-	DrawDebug(1,"");
-	DrawDebug(1,"---------------- ARM9 RAM DUMPER ---------------");
-	DrawDebug(1,"");
-	DrawDebug(0,"Press A to DUMP, B to skip.");
+	DrawDebug(0,1,"");
+	DrawDebug(0,1,"");
+	DrawDebug(0,1,"");
+	DrawDebug(0,1,"---------------- ARM9 RAM DUMPER ---------------");
+	DrawDebug(0,1,"");
+	DrawDebug(0,0,"Press A to DUMP, B to skip.");
 
 	u32 pad_state = HidWaitForInput();
-	if (pad_state & BUTTON_B) DrawDebug(1,"Skipping...");
+	if (pad_state & BUTTON_B) DrawDebug(0,1,"Skipping...");
 	else {
 		u32 bytesWritten = 0;
 		u32 currentWritten = 0;
@@ -167,14 +217,14 @@ void CFW_ARM9Dumper(void) {
 				bytesWritten = FSFileWrite((u8 *)dumpAddr + currentWritten, currentSize, currentWritten);
 				if (bytesWritten != currentSize) break;
 				currentWritten += bytesWritten;
-				DrawDebug(0,"Dumping:                         %07d/%d", currentWritten, fullSize);
+				DrawDebug(0,0,"Dumping:                         %07d/%d", currentWritten, fullSize);
 			}
 			FSFileClose();
 			result = (fullSize == currentWritten);
 		}
-		DrawDebug(1,"");
-		DrawDebug(1,"");
-		DrawDebug(1,"Dump %s! Press any key to boot CFW.", result ? "finished" : "failed");
+		DrawDebug(0,1,"");
+		DrawDebug(0,1,"");
+		DrawDebug(0,1,"Dump %s! Press any key to boot CFW.", result ? "finished" : "failed");
 		HidWaitForInput();
 	}
 }
@@ -203,14 +253,14 @@ void CFW_Settings(void)
 void CFW_Boot(void){
 	//BOOT
 	DrawClearScreenAll();
-	DrawDebug(1, "--------------- PASTA CFW LOADER ---------------");
-	DrawDebug(1, "");
-	DrawDebug(0, "Getting system information...");
+	DrawDebug(0,1, "--------------- PASTA CFW LOADER ---------------");
+	DrawDebug(0,1, "");
+	DrawDebug(0,0, "Getting system information...");
 	CFW_getSystemVersion();
-	DrawDebug(1, "Getting system information...              Done!");
-	DrawDebug(1, "");
-	DrawDebug(1, "Your system is %s", cfw_FWString);
-	DrawDebug(1, "");
+	DrawDebug(0,1, "Getting system information...              Done!");
+	DrawDebug(0,1, "");
+	DrawDebug(0,1, "Your system is %s", cfw_FWString);
+	DrawDebug(0,1, "");
 	CFW_SecondStage();
 }
 
@@ -220,8 +270,6 @@ int main(void) {
 	FSInit();
 	DrawClearScreenAll();
 
-	DrawDebug(1, "--------------- PASTA CFW LOADER ---------------");
-	HidWaitForInput();
 	//MENU
 	while (true)
 	{
@@ -247,7 +295,7 @@ int main(void) {
 		{
 			if (menu_idx == 0){ CFW_Boot(); break; }//BOOT CFW
 			else if (menu_idx == 1)break; //REBOOT
-			else if (menu_idx == 2)CFW_ARM9Dumper(); //ARM9 RAM DUMPER
+			else if (menu_idx == 2)CFW_NandDumper(); //CFW_ARM9Dumper(); //ARM9 RAM DUMPER
 			else if (menu_idx == 3)CFW_Settings(); //SETTINGS
 		}
 	}

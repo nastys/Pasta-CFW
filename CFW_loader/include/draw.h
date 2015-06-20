@@ -26,7 +26,7 @@ void DrawClearScreenAll(void);
 //void DrawCharacter(u8 *screenArea, const char character, u32 x, u32 y, u32 foreColor, u32 backColor); //buggy
 void DrawCharacter(unsigned char *screen, int character, int x, int y, int color, int bgcolor);
 void DrawString(u8 *screenArea, const char *str, u32 x, u32 y, u32 foreColor, u32 backColor);
-void DrawDebug(u8 newline, const char *format, ...);
+void DrawDebug(u8 bottom, u8 newline, const char *format, ...);
 
 void DrawTopSplash(char splash_file[]);
 void DrawBottomSplash(char splash_file[]);

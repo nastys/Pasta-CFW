@@ -132,10 +132,11 @@ void DrawStringFormat(u8 newline, u8 debug, u32 x, u32 y, const char *format, ..
 }
 
 // @breif  Draw a string with format to the desired Position, with defined Foreground & Background Color.
+// @param  bottom draws the debug to the bottom screen, if its not 0
 // @param  newline print a new line, if not zero.
 // @param  format  Similar as snprintf, printf..
 // @note   All similar as DrawStringFormat.. Maybe we should use that instead one day.
-void DrawDebug(u8 newline, const char *format, ...) {
+void DrawDebug(u8 bottom, u8 newline, const char *format, ...) {
     char str[256];
     va_list va;
 
@@ -143,8 +144,16 @@ void DrawDebug(u8 newline, const char *format, ...) {
     vsnprintf(str, 256, format, va);
     va_end(va);
 
-    DrawString(SCREEN_AREA_TOP0, str, 10, drawInternalY, RGB(255, 255, 255), RGB(0, 0, 0));
-    DrawString(SCREEN_AREA_TOP1, str, 10, drawInternalY, RGB(255, 255, 255), RGB(0, 0, 0));
+	if (bottom)
+	{
+		DrawString(SCREEN_AREA_BOT0, str, 10, drawInternalY, RGB(255, 255, 255), RGB(0, 0, 0));
+		DrawString(SCREEN_AREA_BOT1, str, 10, drawInternalY, RGB(255, 255, 255), RGB(0, 0, 0));
+	}
+	else
+	{
+		DrawString(SCREEN_AREA_TOP0, str, 10, drawInternalY, RGB(255, 255, 255), RGB(0, 0, 0));
+		DrawString(SCREEN_AREA_TOP1, str, 10, drawInternalY, RGB(255, 255, 255), RGB(0, 0, 0));
+	}
 
     if (newline) drawInternalY += 10;
 }
