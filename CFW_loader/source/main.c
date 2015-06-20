@@ -154,16 +154,25 @@ void CFW_NandDumper(void){
 
 	//Here we draw the gui
 	DrawBottomSplash("/3ds/PastaCFW/UI/nand0.bin");
-
+	TOP_Current = 0;
 	//And here we have the nand dumper "main"
 	while (true)
 	{
-		int PERCENTAGE = 0;
+		//The following is set until we have proper nand dumping
+		DrawDebug(1, 1, "");
+		DrawDebug(1, 1, "");
+		DrawDebug(1, 1, "");
+		DrawDebug(1, 1, "");
+		DrawDebug(1, 1, "The nand dumping is not ready yet.");
 		HidWaitForInput();
+		break;	
+		//end of safety measures
+		
+		int PERCENTAGE = 0;
 		u32 pad_state = HidWaitForInput();
 		if (pad_state & BUTTON_A)
 		{
-			if (FSFileOpen("NAND.bin"))
+			if (FSFileCreate("/NAND.bin", true))
 			{
 				DrawBottomSplash("/3ds/PastaCFW/UI/nand1.bin");
 				DrawDebug(1, 1, "");
@@ -197,13 +206,11 @@ void CFW_NandDumper(void){
 // @breif  Dump ARM9 Ram to file.
 void CFW_ARM9Dumper(void) {
 	TOP_Current = 0;
-	DrawBottomSplash("/3ds/PastaCFW/UI/dumper0.bin");
-	DrawDebug(1,1,"***");
-	HidWaitForInput();
+	DrawBottomSplash("/3ds/PastaCFW/UI/arm90.bin");
 	u32 pad_state = HidWaitForInput();
 	if (pad_state & BUTTON_A)
 	{
-		DrawBottomSplash("/3ds/PastaCFW/UI/dumper1.bin");
+		DrawBottomSplash("/3ds/PastaCFW/UI/arm91.bin");
 		u32 bytesWritten = 0;
 		u32 currentWritten = 0;
 		u32 result = 0;
@@ -223,10 +230,10 @@ void CFW_ARM9Dumper(void) {
 			result = (fullSize == currentWritten);
 		}
 		if(result == 1){
-			DrawBottomSplash("/3ds/PastaCFW/UI/dumper2OK.bin");
+			DrawBottomSplash("/3ds/PastaCFW/UI/arm92OK.bin");
 		}
 		else{
-			DrawBottomSplash("/3ds/PastaCFW/UI/dumper2E.bin");
+			DrawBottomSplash("/3ds/PastaCFW/UI/arm92E.bin");
 		}
 		HidWaitForInput();
 	}
@@ -240,6 +247,7 @@ void CFW_Settings(void)
 		//DRAW GUI
 		DrawTopSplash("/3ds/PastaCFW/UI/appTOP.bin");
 		DrawBottomSplash("/3ds/PastaCFW/UI/options.bin");
+		TOP_Current = 0;
 		//APP CONTROLS
 		u32 pad_state = HidWaitForInput();
 		if (pad_state & BUTTON_DOWN && settings_idx != SETTINGS_ITEMS - 1) settings_idx++; //MOVE DOWN
@@ -281,12 +289,17 @@ int main(void) {
 		{
 			DrawTopSplash("/3ds/PastaCFW/UI/creditsTOP.bin");
 			DrawBottomSplash("/3ds/PastaCFW/UI/menu6.bin");
+			TOP_Current = 0;
 		}
 		else
 		{
 			char path[] = "/3ds/PastaCFW/UI/menu0.bin";
 			path[21] = menu_idx + 48;
 			DrawBottomSplash(path); //BOTTOM SCREEN
+			if(TOP_Current == 0){
+				DrawTopSplash("/3ds/PastaCFW/UI/menuTOP.bin"); //TOP SCREEN
+				TOP_Current =1;
+				}
 			DrawTopSplash("/3ds/PastaCFW/UI/menuTOP.bin"); //TOP SCREEN
 		}
 

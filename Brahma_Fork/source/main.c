@@ -147,57 +147,6 @@ void bootCFW_FirstStage()
 	brahma_exit();
 }
 
-void drawUI()
-{
-	//UI DRAWING CODE
-	char buffer[100];
-	//-------------- TOP --------------
-	//WALLPAPER
-	gfxDrawSprite(GFX_TOP, GFX_LEFT, (u8*)TOP_bin, 240, 400, 0, 0);
-	
-	//STATUSBAR
-	drawFillRect(0, 0, 399, 17, 114, 110, 84, screenTopLeft);
-	sprintf(buffer, "Pasta CFW Loader                  %s", systemVersion);
-	gfxDrawText(GFX_TOP, GFX_LEFT, NULL, buffer, 5, 238 - fontDefault.height * 1);
-    //CLOCK
-	u64 timeInSeconds = osGetTime() / 1000;
-	u64 dayTime = timeInSeconds % SECONDS_IN_DAY;
-	sprintf(buffer, "%llu:%llu:%llu", dayTime / SECONDS_IN_HOUR, (dayTime % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE, dayTime % SECONDS_IN_MINUTE);
-	gfxDrawText(GFX_TOP, GFX_LEFT, NULL, buffer, 350, 238 - fontDefault.height * 1);
-
-	//------------- BOTTOM ------------
-	//Prints a background!
-	gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_bin, 240, 320, 0, 0);
-
-	//CREDITS!
-	if (showcredits)
-	{
-		//DRAWS A BIG RECT AND WRITES CREDITS INSIDE IT
-		drawFillRect(40, 50, 360, 190, 114, 110, 84, screenTopLeft);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "CREDITS:", 175, 230 - fontDefault.height * 4);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "AlbertoSONIC: UI, autoboot and code enhancements.", 50, 230 - fontDefault.height * 5);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "Patois: Providing the Brahma solution.", 50, 230 - fontDefault.height * 6);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "Motezazer: Providing most of the offsets for the CFW.", 50, 230 - fontDefault.height * 7);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "Unknown: Leaking method and some O3DS offsets.", 50, 230 - fontDefault.height * 8);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "Capito27: Starting the PastaCFW idea.", 50, 230 - fontDefault.height * 9);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "KARL team: Kernel version detection", 50, 230 - fontDefault.height * 10);
-		gfxDrawText(GFX_TOP, GFX_LEFT, NULL, "Smea: for Ninjhax and HomeBrew Menu", 50, 230 - fontDefault.height * 11);
-	}
-}
-
-void guiPopup(char* title, char* line1, char* line2, char* line3)
-{
-	//Prints a dark grey rectangle!
-	drawFillRect(36, 60, 272, 85, 128, 128, 128, screenBottom);
-	//Prints a light grey rectangle!
-	drawFillRect(36, 85, 272, 189, 160, 160, 160, screenBottom);
-	//Prints text
-	gfxDrawText(GFX_BOTTOM, GFX_LEFT, NULL, title, 124, 240 - fontDefault.height * 5);
-	gfxDrawText(GFX_BOTTOM, GFX_LEFT, NULL, line1, 50, 245 - fontDefault.height * 7);
-	gfxDrawText(GFX_BOTTOM, GFX_LEFT, NULL, line2, 50, 245 - fontDefault.height * 8);
-	gfxDrawText(GFX_BOTTOM, GFX_LEFT, NULL, line3, 50, 245 - fontDefault.height * 9);
-}
-
 void updateFB()
 {
 	// Flush and swap framebuffers
@@ -231,89 +180,7 @@ int main() {
 	//Then we save the configuration
 	saveConfiguration();
 
-	// If L is held, show UI - If set by PC Companion App, then we always open the menu!  
-	if (auto_boot=='1' || kHeld & KEY_L)
-	{
-		// Main loop
-		while (aptMainLoop() & 1 == 2) //Dirty way to lock old GUI
-		{
-			//As nop90 suggested
-			getFB();
+	//Proceeds to launch the loader.bin
+	bootCFW_FirstStage();
 
-			//Gets input (keys and touch)
-			getInput();
-
-			//Prints the GUI
-			drawUI();
-
-			//Do stuff
-			if(!(input & KEY_TOUCH) && (old_input & KEY_TOUCH))
-			{
-				if ((posX >= 30 && posX <= 293) && (posY >= 57 && posY <= 112))
-				{
-					//"Boot" button
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_BOOT_bin, 85, 304, 0, 240-118);
-					updateFB();
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_bin, 240, 320, 0, 0);
-					updateFB();
-					bootCFW_FirstStage(); //Boot CFW
-				}
-				else if ((posX >= 30 && posX <= 292) && (posY >= 148 && posY <= 202))
-				{
-					//"Reboot" button
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_REBOOT_bin, 101, 320, 0, 240-239);
-					updateFB();
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_bin, 240, 320, 0, 0);
-					updateFB();
-					//Reboot Code
-					aptOpenSession();
-					APT_HardwareResetAsync(NULL);
-					aptCloseSession();
-				}
-				else if ((posX >= 14 && posX <= 137) && (posY >= 0 && posY <= 27))
-				{
-					//"Exit" button
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_EXIT_bin, 34, 320, 0, 240-34);
-					updateFB();
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_bin, 240, 320, 0,0);
-					updateFB();
-					break; //EXIT
-				}
-
-				if (((posX >= 180 && posX <= 303) && (posY >= 0 && posY <= 27)))
-				{
-					//"Credits" button
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_CREDITS_bin, 34, 320, 0, 240 - 34);
-					updateFB();
-					gfxDrawSprite(GFX_BOTTOM, GFX_LEFT, (u8*)BOT_bin, 240, 320, 0, 0);
-					updateFB();
-					showcredits = !showcredits;
-				}
-			}
-
-			// Flush and swap framebuffers
-			gfxFlushBuffers();
-			gfxSwapBuffers();
-
-			//Wait for VBlank
-			gspWaitForVBlank();
-		}
-	}
-	else
-	{
-		//QUICK BOOT!
-		bootCFW_FirstStage();
-	}
-
-	// Exit services
-	hbExit();
-	sdmcExit();
-	fsExit();
-	gfxExit();
-	hidExit();
-	aptExit();
-	srvExit();
-
-	// Return to hbmenu
-	return 0;
 	}
