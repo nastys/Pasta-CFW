@@ -300,7 +300,6 @@ int main(void) {
 				DrawTopSplash("/3ds/PastaCFW/UI/menuTOP.bin"); //TOP SCREEN
 				TOP_Current =1;
 				}
-			DrawTopSplash("/3ds/PastaCFW/UI/menuTOP.bin"); //TOP SCREEN
 		}
 
 		//MENU CONTROLS
