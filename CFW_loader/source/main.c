@@ -153,54 +153,35 @@ void CFW_NandDumper(void){
 	unsigned int nsectors = 0x200;  //sectors in a row
 
 	//Here we draw the gui
-	DrawBottomSplash("/3ds/PastaCFW/UI/nand0.bin");
 	TOP_Current = 0;
-	//And here we have the nand dumper "main"
-	while (true)
+	DrawBottomSplash("/3ds/PastaCFW/UI/nand0.bin");
+	u32 pad_state = HidWaitForInput();
+	if (pad_state & BUTTON_A)
 	{
-		//The following is set until we have proper nand dumping
-		DrawDebug(1, 1, "");
-		DrawDebug(1, 1, "");
-		DrawDebug(1, 1, "");
-		DrawDebug(1, 1, "");
-		DrawDebug(1, 1, "The nand dumping is not ready yet.");
-		HidWaitForInput();
-		break;	
-		//end of safety measures
-		
 		int PERCENTAGE = 0;
-		u32 pad_state = HidWaitForInput();
-		if (pad_state & BUTTON_A)
+		DrawBottomSplash("/3ds/PastaCFW/UI/nand1.bin");
+		if (FSFileCreate("/NAND.bin", true))
 		{
-			if (FSFileCreate("/NAND.bin", true))
+			for (int count = 0; count < NAND_SIZE / NAND_SECTOR_SIZE / nsectors; count++)
 			{
-				DrawBottomSplash("/3ds/PastaCFW/UI/nand1.bin");
-				DrawDebug(1, 1, "");
-				DrawDebug(1, 1, "");
-				DrawDebug(1, 1, "");
-				DrawDebug(1, 1, "");
-				DrawDebug(1, 1, "");
-				DrawDebug(1, 1, "");
-				for (int count = 0; count < NAND_SIZE / NAND_SECTOR_SIZE / nsectors; count++)
-				{
-					sdmmc_nand_readsectors(count*nsectors, nsectors, buf);
+				sdmmc_nand_readsectors(count*nsectors, nsectors, buf);
 
-					FSFileWrite(buf, nsectors*NAND_SECTOR_SIZE, count*NAND_SECTOR_SIZE*nsectors);
-					if ((count % (int)(NAND_SIZE / NAND_SECTOR_SIZE / nsectors / 100)) == 0 && count != 0)
-					{
-						PERCENTAGE++;
-						DrawDebug(1, 0, "%d%%", PERCENTAGE);
-					}
+				FSFileWrite(buf, nsectors*NAND_SECTOR_SIZE, count*NAND_SECTOR_SIZE*nsectors);
+				if ((count % (int)(NAND_SIZE / NAND_SECTOR_SIZE / nsectors / 100)) == 0 && count != 0)
+				{
+					char buffer[100];	
+					sprintf(buffer,"%d%%", PERCENTAGE);
+					DrawString(SCREEN_AREA_BOT0, buffer, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
+					DrawString(SCREEN_AREA_BOT1, buffer, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
+					PERCENTAGE++;
 				}
-				FSFileClose();
-				DrawBottomSplash("/3ds/PastaCFW/UI/nand2O.bin");
 			}
-			else DrawBottomSplash("/3ds/PastaCFW/UI/nand2E.bin");
+			FSFileClose();
+			DrawBottomSplash("/3ds/PastaCFW/UI/nand2O.bin");
 		}
-		else if (pad_state & BUTTON_B)break;
-		HidWaitForInput();
-		break;
+		else DrawBottomSplash("/3ds/PastaCFW/UI/nand2E.bin");
 	}
+	HidWaitForInput();
 }
 
 // @breif  Dump ARM9 Ram to file.
