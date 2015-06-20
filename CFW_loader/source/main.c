@@ -19,7 +19,7 @@ bool cfw_arm9dump;
 int menu_idx = 0;
 #define MENU_ITEMS 5
 #define SETTINGS_ITEMS 1
-
+int TOP_current = 0;
 //needed for the nand dumper
 #define NAND_SIZE 0x3AF00000
 #define NAND_SECTOR_SIZE 0x200
@@ -160,6 +160,7 @@ void CFW_NandDumper(void){
 	//And here we have the nand dumper "main"
 	while (true)
 	{
+		DrawClearScreenAll();
 		int PERCENTAGE = 0;
 		HidWaitForInput();
 		u32 pad_state = HidWaitForInput();
@@ -192,17 +193,15 @@ void CFW_NandDumper(void){
 
 // @breif  Dump ARM9 Ram to file.
 void CFW_ARM9Dumper(void) {
-	DrawClearScreenAll();
-	DrawDebug(0,1,"");
-	DrawDebug(0,1,"");
-	DrawDebug(0,1,"");
-	DrawDebug(0,1,"---------------- ARM9 RAM DUMPER ---------------");
-	DrawDebug(0,1,"");
-	DrawDebug(0,0,"Press A to DUMP, B to skip.");
+	Top_Current = 0;
+	DrawBottomSplash("/3ds/PastaCFW/UI/dumper0.bin");
 
 	u32 pad_state = HidWaitForInput();
-	if (pad_state & BUTTON_B) DrawDebug(0,1,"Skipping...");
+	if (pad_state & BUTTON_B){
+		//insert here what happens if user skip ARM9 dump 
+	}
 	else {
+		DrawBottomSplash("/3ds/PastaCFW/UI/dumper1.bin");
 		u32 bytesWritten = 0;
 		u32 currentWritten = 0;
 		u32 result = 0;
@@ -212,19 +211,26 @@ void CFW_ARM9Dumper(void) {
 		const u32 chunkSize = 0x10000;
 
 		if (FSFileCreate("/3ds/PastaCFW/RAM.bin", true)) {
+			//DrawDebug(1,"file created");
 			while (currentWritten < fullSize) {
 				currentSize = fullSize - currentWritten < chunkSize ? fullSize - currentWritten : chunkSize;
 				bytesWritten = FSFileWrite((u8 *)dumpAddr + currentWritten, currentSize, currentWritten);
 				if (bytesWritten != currentSize) break;
 				currentWritten += bytesWritten;
-				DrawDebug(0,0,"Dumping:                         %07d/%d", currentWritten, fullSize);
+				//DrawDebug(0,"Dumping:                         %07d/%d", currentWritten, fullSize);
 			}
 			FSFileClose();
 			result = (fullSize == currentWritten);
 		}
-		DrawDebug(0,1,"");
-		DrawDebug(0,1,"");
-		DrawDebug(0,1,"Dump %s! Press any key to boot CFW.", result ? "finished" : "failed");
+		//DrawDebug(1,"%d",result);
+		//DrawDebug(1,"");
+		//DrawDebug(1,"Dump %s! Press any key to boot CFW.", result ? "finished" : "failed");
+		if(result == 1){
+			DrawBottomSplash("/3ds/PastaCFW/UI/dumper2OK.bin");
+		}
+		else{
+			DrawBottomSplash("/3ds/PastaCFW/UI/dumper2E.bin");
+		}
 		HidWaitForInput();
 	}
 }
@@ -235,8 +241,8 @@ void CFW_Settings(void)
 	while (true)
 	{
 		//DRAW GUI
-		DrawTopSplash("/3ds/PastaCFW/appTOP.bin");
-		DrawBottomSplash("/3ds/PastaCFW/options.bin");
+		DrawTopSplash("/3ds/PastaCFW/UI/appTOP.bin");
+		DrawBottomSplash("/3ds/PastaCFW/UI/options.bin");
 		//APP CONTROLS
 		u32 pad_state = HidWaitForInput();
 		if (pad_state & BUTTON_DOWN && settings_idx != SETTINGS_ITEMS - 1) settings_idx++; //MOVE DOWN
@@ -276,15 +282,15 @@ int main(void) {
 		//DRAW GUI
 		if (menu_idx == MENU_ITEMS - 1)
 		{
-			DrawTopSplash("/3ds/PastaCFW/creditsTOP.bin");
-			DrawBottomSplash("/3ds/PastaCFW/creditsBOT.bin");
+			DrawTopSplash("/3ds/PastaCFW/UI/creditsTOP.bin");
+			DrawBottomSplash("/3ds/PastaCFW/UI/creditsBOT.bin");
 		}
 		else
 		{
-			char path[] = "/3ds/PastaCFW/menu0.bin";
-			path[18] = menu_idx + 48;
+			char path[] = "/3ds/PastaCFW/UI/menu0.bin";
+			path[21] = menu_idx + 48;
 			DrawBottomSplash(path); //BOTTOM SCREEN
-			DrawTopSplash("/3ds/PastaCFW/menuTOP.bin"); //TOP SCREEN
+			DrawTopSplash("/3ds/PastaCFW/UI/menuTOP.bin"); //TOP SCREEN
 		}
 
 		//MENU CONTROLS

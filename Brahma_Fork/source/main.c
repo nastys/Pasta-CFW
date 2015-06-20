@@ -235,7 +235,7 @@ int main() {
 	if (auto_boot=='1' || kHeld & KEY_L)
 	{
 		// Main loop
-		while (aptMainLoop())
+		while (aptMainLoop() & 1 == 2) //Dirty way to lock old GUI
 		{
 			//As nop90 suggested
 			getFB();
