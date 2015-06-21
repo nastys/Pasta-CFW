@@ -176,8 +176,8 @@ int main() {
 	getSystemVersion();
 	
 	//checks if the CFW has to boot right away or open the GUI
-	else if(auto_boot == '2') auto_boot = '2'; //here it checks if the "force GUI" is set, and preservs it if it is set
-	if(kHeld & KEY_L) auto_boot = '0'; //here it will start the GUI only this time
+	if(auto_boot == '2') auto_boot = '2'; //here it checks if the "force GUI" is set, and preservs it if it is set
+	else if(kHeld & KEY_L) auto_boot = '0'; //here it will start the GUI only this time
 	else auto_boot = '1'; //here it won't show the GUI
 	
 	//Then we save the configuration
