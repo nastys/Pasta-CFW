@@ -22,7 +22,8 @@ int menu_idx = 0;
 int TOP_Current = 0;
 
 //needed for the nand dumper
-#define NAND_SIZE 0x3AF00000
+#define NAND_SIZE_O3DS 0x3AF00000
+#define NAND_SIZE_N3DS 0x4D800000
 #define NAND_SECTOR_SIZE 0x200
 #define BUF1 0x21000000
 
@@ -159,6 +160,9 @@ void CFW_NandDumper(void){
 	if (pad_state & BUTTON_A)
 	{
 		int PERCENTAGE = 0;
+		int NAND_SIZE;
+		if (cfw_FWValue == 'a' || cfw_FWValue == 'b') NAND_SIZE = NAND_SIZE_N3DS;
+		else  NAND_SIZE = NAND_SIZE_O3DS;
 		DrawBottomSplash("/3ds/PastaCFW/UI/nand1.bin");
 		if (FSFileCreate("/NAND.bin", true))
 		{
@@ -169,8 +173,8 @@ void CFW_NandDumper(void){
 				FSFileWrite(buf, nsectors*NAND_SECTOR_SIZE, count*NAND_SECTOR_SIZE*nsectors);
 				if ((count % (int)(NAND_SIZE / NAND_SECTOR_SIZE / nsectors / 100)) == 0 && count != 0)
 				{
-					char str[100];	
-					sprintf(str,"%d%%", PERCENTAGE);
+					char str[100];
+					sprintf(str, "%d%%", PERCENTAGE);
 					DrawString(SCREEN_AREA_BOT0, str, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
 					DrawString(SCREEN_AREA_BOT1, str, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
 					PERCENTAGE++;
@@ -285,7 +289,6 @@ int main(void) {
 					TOP_Current = 1;
 				}
 			}
-
 			//MENU CONTROLS
 			u32 pad_state = HidWaitForInput();
 			if (pad_state & BUTTON_RIGHT && menu_idx != MENU_ITEMS - 1) menu_idx++; //MOVE RIGHT
