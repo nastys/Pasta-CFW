@@ -85,7 +85,7 @@ void CFW_getSystemVersion(void) {
 		break;
 	}
 	//Check if to use the ARM9 Dumper
-	if (settings[1] == '0' || settings[1] == '2') cfw_bootGUI = true;
+	if (settings[1] == '1') cfw_bootGUI = true;
 }
 
 // @breif  Patch the offsets to pass the signs.
