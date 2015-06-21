@@ -85,7 +85,7 @@ void CFW_getSystemVersion(void) {
 		break;
 	}
 	//Check if to use the ARM9 Dumper
-	if (settings[1] == '1') cfw_bootGUI = true;
+	if (settings[1] == '0' || settings[1] == '2') cfw_bootGUI = true;
 }
 
 // @breif  Patch the offsets to pass the signs.
@@ -238,7 +238,7 @@ void CFW_Settings(void)
 	if (FSFileOpen("/3ds/PastaCFW/system.txt")){
 		FSFileRead(settings, 16, 0);
 		FSFileClose();
-		if (settings[1] == '1')autobootgui = true;
+		if (settings[1] == '2')autobootgui = true;
 	}
 	while (true)
 	{
@@ -275,7 +275,7 @@ void CFW_Settings(void)
 			FSFileOpen("/3ds/PastaCFW/system.txt");
 			char tobewritten[2];
 			tobewritten[0] = cfw_FWValue;
-			tobewritten[1] = autobootgui ? '1' : '0';
+			tobewritten[1] = autobootgui ? '2' : '1';
 			FSFileWrite(tobewritten, 2, 0);
 			FSFileClose();
 			break;
