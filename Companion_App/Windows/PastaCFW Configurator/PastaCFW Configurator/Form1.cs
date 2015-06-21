@@ -110,8 +110,8 @@ namespace PastaCFW_Configurator
 
         private void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
-            if (checkBox2.Checked == true) auto_boot = '1';
-            else auto_boot = '0';
+            if (checkBox2.Checked == true) auto_boot = '2';
+            else auto_boot = '1';
             updateFile(type,auto_boot);
         }
 

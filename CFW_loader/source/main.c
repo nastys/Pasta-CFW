@@ -233,12 +233,12 @@ void CFW_Settings(void)
 {
 	TOP_Current = 0;
 	int settings_idx = 0;
-	bool autoboot = false;
+	bool autobootguigui = false;
 	char settings[2];
 	if (FSFileOpen("/3ds/PastaCFW/system.txt")){
 		FSFileRead(settings, 16, 0);
 		FSFileClose();
-		if (settings[1] == '1')autoboot = true;
+		if (settings[1] == '1')autobootgui = true;
 	}
 	while (true)
 	{
@@ -257,7 +257,7 @@ void CFW_Settings(void)
 			if (i == settings_idx) beg = "->";
 			else beg = "  ";
 
-			       if (i == 0)DrawSettingsDebug(1, "%s AutoBoot GUI                <%s>", beg, autoboot ? "YES" : "NO ");
+			       if (i == 0)DrawSettingsDebug(1, "%s Always boot the GUI         <%s>", beg, autobootgui ? "YES" : "NO ");
 			//else if (i == 1)DrawSettingsDebug(1, "%s Option 2                    <%s>", beg, option2 ? "YES" : "NO ");
 		}
 
@@ -267,7 +267,7 @@ void CFW_Settings(void)
 		else if (pad_state & BUTTON_UP && settings_idx != 0) settings_idx--; //MOVE UP
 		else if (pad_state & BUTTON_LEFT || pad_state & BUTTON_RIGHT)
 		{
-			if (settings_idx == 0) autoboot = !autoboot; //autoboot settings
+			if (settings_idx == 0) autobootgui = !autobootgui; //autobootgui settings
 		}
 		else if (pad_state & BUTTON_A)
 		{
@@ -275,7 +275,7 @@ void CFW_Settings(void)
 			FSFileOpen("/3ds/PastaCFW/system.txt");
 			char tobewritten[2];
 			tobewritten[0] = cfw_FWValue;
-			tobewritten[1] = autoboot ? '1' : '0';
+			tobewritten[1] = autobootgui ? '1' : '0';
 			FSFileWrite(tobewritten, 2, 0);
 			FSFileClose();
 			break;
