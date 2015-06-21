@@ -84,7 +84,7 @@ void CFW_getSystemVersion(void) {
 		break;
 	}
 	//Check if to use the ARM9 Dumper
-	if (settings[1] == '1') cfw_bootGUI = true;
+	if (settings[1] == '0' || settings[1] == '2') cfw_bootGUI = true;
 }
 
 // @breif  Patch the offsets to pass the signs.
@@ -265,8 +265,7 @@ int main(void) {
 
 	FSInit();
 	CFW_getSystemVersion();	
-	u32 khold = HID_STATE;
-	if (cfw_bootGUI==true || khold & BUTTON_L1) //If gui autoboot is enabled or L is held, show the ui //L held not working
+	if (cfw_bootGUI==true) //If gui autoboot is enabled or L is held, show the ui //L held not working
 	{
 		DrawClearScreenAll();
 		//MENU
