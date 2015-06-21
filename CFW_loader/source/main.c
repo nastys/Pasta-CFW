@@ -233,7 +233,7 @@ void CFW_Settings(void)
 {
 	TOP_Current = 0;
 	int settings_idx = 0;
-	bool autobootguigui = false;
+	bool autobootgui = false;
 	char settings[2];
 	if (FSFileOpen("/3ds/PastaCFW/system.txt")){
 		FSFileRead(settings, 16, 0);
