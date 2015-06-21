@@ -51,3 +51,21 @@ u32 aes_getwritecount();
 u32 aes_getreadcount();
 u32 aescnt_checkwrite();
 u32 aescnt_checkread();
+
+typedef struct {
+	long offset;
+	void *p;
+	size_t size;
+	uint8_t arm[4];
+	uint8_t hash[32];
+} firmSectHdr;
+
+typedef struct {
+	uint32_t magic;
+	uint32_t unk0;
+	void *arm11Ent;
+	void *arm9Ent;
+	uint8_t unk1[48];
+	firmSectHdr sect[4];
+	uint8_t sig[256];
+} firmHdr;

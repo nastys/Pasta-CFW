@@ -14,6 +14,12 @@ char* cfw_FWString;
 char cfw_FWValue;
 //This is related to the ui autoboot
 bool cfw_bootGUI;
+//if true, perform firmlaunch
+bool firmlaunch;
+//if true, the 7X key is needed to perform a firmlaunch
+bool key7Xneeded;
+
+firmHdr firm;
 
 //variables needed for menu and settings gui
 int menu_idx = 0;
@@ -27,6 +33,17 @@ int TOP_Current = 0;
 #define NAND_SIZE_N3DS 0x4D800000
 #define NAND_SECTOR_SIZE 0x200
 #define BUF1 0x21000000
+
+void error(void)
+{
+	int a;
+	DrawDebug(0, 1, "Your firm.bin is corrupted!");
+	while (1)
+	{
+		a += 1;
+		a -= 1;
+	}
+}
 
 //[Unused]
 //void ioDelay(u32);
@@ -88,65 +105,158 @@ void CFW_getSystemVersion(void) {
 	if (settings[1] == '0' || settings[1] == '2') cfw_bootGUI = true;
 }
 
+// @breif Initialize N3DS keys
+void KeyInit(void* source)
+{
+	int i;
+	u8 firm_key[16] = { 0 };
+	u8 * _source = (u8*)source;
+	u8 firm_key_xored[16] = { 0xDE, 0x0E, 0x42, 0x0F, 0xE5, 0x75, 0x2C, 0xF0, 0x77, 0x4D, 0xA1, 0x87, 0x42, 0x33, 0xB9, 0xAA };
+	for (i = 0; i<16; i++)
+	{
+		firm_key[i] = _source[i] ^ firm_key_xored[i];
+	}
+	setup_aeskeyX(0x16, firm_key);
+}
+
+void Key7X(void)
+{
+	size_t bytesRead;
+	if (FSFileOpen("/slot0x25KeyX.bin")) {
+		u8 slot0x25KeyX[16] = { 0 };
+
+		bytesRead = FSFileRead(&slot0x25KeyX, 16, 0);
+		FSFileClose();
+		if (bytesRead != 16) {
+			DrawDebug(0, 1, "slot0x25KeyX.bin is too small!");
+		}
+		setup_aeskeyX(0x25, slot0x25KeyX);
+	}
+	else {
+		DrawDebug(0, 1, "You can't perform firmlaunch without slot0x25KeyX.bin");
+		int a;
+		while (1)
+		{
+			a += 1;
+			a -= 1;
+		}
+	}
+}
+
+// @breif Copy and initialize FIRM
+void PrepareFirmLaunch(void)
+{
+	uint32_t magic = 0x4D524946;
+	size_t bytesRead;
+	if (key7Xneeded)
+		Key7X();
+	FSFileOpen("/3ds/PastaCFW/firm.bin");
+	bytesRead = FSFileRead(&firm, 0x200, 0);
+	if (bytesRead != 0x200)
+		error();
+	if (firm.magic != magic)
+		error();
+	FSFileRead(firm.sect[0].p, firm.sect[0].size, firm.sect[0].offset);
+	FSFileRead(firm.sect[1].p, firm.sect[1].size, firm.sect[1].offset);
+	FSFileRead(firm.sect[2].p, firm.sect[2].size, firm.sect[2].offset);
+	if (cfw_FWValue == 'd')
+	{
+		u8 key[16] = { 0 };
+		FSFileRead(&key, 0x10, (firm.sect[2].offset + 0x60));
+		KeyInit(key);
+	}
+
+}
+
 // @breif  Patch the offsets to pass the signs.
 void CFW_SecondStage(void) {
-    u8 patchO0[] = { 0x00, 0x20, 0x3B, 0xE0 };
+	//Firm launch part
+	//Check if firm.bin exists
+	if (FSFileOpen("/firm.bin"))
+	{
+		FSFileClose();
+		if (Platform_CheckUnit() == PLATFORM_N3DS)
+		{
+			cfw_FWValue = 'd';
+		}
+		else
+		{
+			cfw_FWValue = 'c';
+		}
+		PrepareFirmLaunch();
+		firmlaunch = 1;
+	}
+
+	u8 patchO0[] = { 0x00, 0x20, 0x3B, 0xE0 };
 	u8 patchO1[] = { 0x00, 0x20, 0x08, 0xE0 };
 	u8 patchN0[] = { 0x01, 0x27, 0x1E, 0xF5 };
 	u8 patchN1[] = { 0xB4, 0xF9, 0xD0, 0xAB };
 	u8 patchN2[] = { 0x6D, 0x20, 0xCE, 0x77 };
 	u8 patchN3[] = { 0x5A, 0xC5, 0x73, 0xC1 };
+	u8 patchN4[] = { 0xE7, 0x08, 0x3F, 0x22 };
+	u8 patchN5[] = { 0x6F, 0x94, 0x72, 0x09 };
 	//Apply patches
-	DrawDebug(0,0,"Apply patch for type %c...", cfw_FWValue);
-    switch(cfw_FWValue) {
-        //Old-3DS
-    	case '1': // 4.x
-    		memcpy((u32*)0x080549C4, patchO0, 4);
-    		memcpy((u32*)0x0804239C, patchO1, 4);
-    		break;
-    	case '2': // 5.0
-    		memcpy((u32*)0x08051650, patchO0, 4);
-    		memcpy((u32*)0x0803C838, patchO1, 4);
-    		break;
-    	case '3': // 5.1
-    		memcpy((u32*)0x0805164C, patchO0, 4);
-    		memcpy((u32*)0x0803C838, patchO1, 4);
-    		break;
-    	case '4': // 6.0
-    		memcpy((u32*)0x0805235C, patchO0, 4);
-    		memcpy((u32*)0x08057FE4, patchO1, 4);
-    		break;
-    	case '5': // 6.1 - 6.3
-    		memcpy((u32*)0x08051B5C, patchO0, 4);
-    		memcpy((u32*)0x08057FE4, patchO1, 4);
-    		break;
-    	case '6': // 7.0-7.1
-    		memcpy((u32*)0x080521C4, patchO0, 4);
-    		memcpy((u32*)0x08057E98, patchO1, 4);
-    		break;
-    	case '7': // 7.2
-    		memcpy((u32*)0x080521C8, patchO0, 4);
-    		memcpy((u32*)0x08057E9C, patchO1, 4);
-    		break;
-    	case '8': // 8.x
-    		memcpy((u32*)0x080523C4, patchO0, 4);
-    		memcpy((u32*)0x08058098, patchO1, 4);
-    		break;
-    	case '9': // 9.x
-    		memcpy((u32*)0x0805235C, patchO0, 4);
-    		memcpy((u32*)0x08058100, patchO1, 4);
-    		break;
-        //New-3DS
-    	case 'a': // 8.x
-    		memcpy((u32*)0x08053114, patchN0, 4);
-    		memcpy((u32*)0x080587E0, patchN1, 4);
-    		break;
-    	case 'b': // 9.x
-    		memcpy((u32*)0x08052FD8, patchN2, 4);
-    		memcpy((u32*)0x08058804, patchN3, 4);
-    		break;
-    }
-	DrawDebug(0,1,"Apply patch for type %c...                  Done!", cfw_FWValue);
+	DrawDebug(0, 0, "Apply patch for type %c...", cfw_FWValue);
+	switch (cfw_FWValue) {
+		//Old-3DS
+	case '1': // 4.x
+		memcpy((u32*)0x080549C4, patchO0, 4);
+		memcpy((u32*)0x0804239C, patchO1, 4);
+		break;
+	case '2': // 5.0
+		memcpy((u32*)0x08051650, patchO0, 4);
+		memcpy((u32*)0x0803C838, patchO1, 4);
+		break;
+	case '3': // 5.1
+		memcpy((u32*)0x0805164C, patchO0, 4);
+		memcpy((u32*)0x0803C838, patchO1, 4);
+		break;
+	case '4': // 6.0
+		memcpy((u32*)0x0805235C, patchO0, 4);
+		memcpy((u32*)0x08057FE4, patchO1, 4);
+		break;
+	case '5': // 6.1 - 6.3
+		memcpy((u32*)0x08051B5C, patchO0, 4);
+		memcpy((u32*)0x08057FE4, patchO1, 4);
+		break;
+	case '6': // 7.0-7.1
+		memcpy((u32*)0x080521C4, patchO0, 4);
+		memcpy((u32*)0x08057E98, patchO1, 4);
+		break;
+	case '7': // 7.2
+		memcpy((u32*)0x080521C8, patchO0, 4);
+		memcpy((u32*)0x08057E9C, patchO1, 4);
+		break;
+	case '8': // 8.x
+		memcpy((u32*)0x080523C4, patchO0, 4);
+		memcpy((u32*)0x08058098, patchO1, 4);
+		break;
+	case '9': // 9.x
+		memcpy((u32*)0x0805235C, patchO0, 4);
+		memcpy((u32*)0x08058100, patchO1, 4);
+		break;
+		//New-3DS
+	case 'a': // 8.x
+		memcpy((u32*)0x08053114, patchN0, 4);
+		memcpy((u32*)0x080587E0, patchN1, 4);
+		break;
+	case 'b': // 9.x
+		memcpy((u32*)0x08052FD8, patchN2, 4);
+		memcpy((u32*)0x08058804, patchN3, 4);
+		break;
+		//FIRM_LAUNCH
+		//Old 3DS
+	case 'c': // 9.6 - 9.8
+		memcpy((u32*)0x0805252C, patchO0, 4);
+		memcpy((u32*)0x08058094, patchO1, 4);
+		break;
+		//New 3DS
+	case 'd': // 9.5
+		memcpy((u32*)0x0805219C, patchN4, 4);
+		memcpy((u32*)0x08057F50, patchN5, 4);
+		break;
+	}
+	DrawDebug(0, 1, "Apply patch for type %c...                  Done!", cfw_FWValue);
 }
 
 void CFW_NandDumper(void){
@@ -294,6 +404,15 @@ void CFW_Boot(void){
 	CFW_SecondStage();
 }
 
+// @breif FirmLaunch!
+void FirmLaunch(void)
+{
+	//Prepare ARM11
+	*(uint32_t *)0x1FFFFFF8 = *(uint32_t *)(firm.arm11Ent);
+	//Jump
+	((void(*)())firm.arm9Ent)();
+}
+
 // @breif  Main routine surely.
 int main(void) {
 
@@ -337,6 +456,7 @@ int main(void) {
 		}
 	}
 	else CFW_Boot(); //else directly boot the cfw
+	if (firmlaunch == true) FirmLaunch();
 
 	// return control to FIRM ARM9 code (performs firmlaunch)
 	return 0;
