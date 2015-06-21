@@ -17,6 +17,7 @@ bool cfw_bootGUI;
 
 //variables needed for menu and settings gui
 int menu_idx = 0;
+int settings_idx = 0;
 #define MENU_ITEMS 7
 #define SETTINGS_ITEMS 1
 int TOP_Current = 0;
@@ -232,18 +233,51 @@ void CFW_Settings(void)
 {
 	TOP_Current = 0;
 	int settings_idx = 0;
+	bool autoboot = false;
+	char settings[2];
+	if (FSFileOpen("/3ds/PastaCFW/system.txt")){
+		FSFileRead(settings, 16, 0);
+		FSFileClose();
+		if (settings[1] == '1')autoboot = true;
+	}
 	while (true)
 	{
 		//DRAW GUI
 		DrawBottomSplash("/3ds/PastaCFW/UI/options.bin");
 		TOP_Current = 0;
+		drawInternalY = 0;
+		DrawDebug(1, 1, "");
+		DrawDebug(1, 1, "");
+		DrawDebug(1, 1, "");
+		DrawDebug(1, 1, "");
+		int i;
+		char* beg;
+		for (i = 0; i < SETTINGS_ITEMS; i++)
+		{
+			if (i == settings_idx) beg = "->";
+			else beg = "  ";
+
+			       if (i == 0)DrawSettingsDebug(1, "%s AutoBoot GUI                <%s>", beg, autoboot ? "YES" : "NO ");
+			//else if (i == 1)DrawSettingsDebug(1, "%s Option 2                    <%s>", beg, option2 ? "YES" : "NO ");
+		}
+
 		//APP CONTROLS
 		u32 pad_state = HidWaitForInput();
 		if (pad_state & BUTTON_DOWN && settings_idx != SETTINGS_ITEMS - 1) settings_idx++; //MOVE DOWN
 		else if (pad_state & BUTTON_UP && settings_idx != 0) settings_idx--; //MOVE UP
+		else if (pad_state & BUTTON_LEFT || pad_state & BUTTON_RIGHT)
+		{
+			if (settings_idx == 0) autoboot = !autoboot; //autoboot settings
+		}
 		else if (pad_state & BUTTON_A)
 		{
 			//SAVE SETTINGS
+			FSFileOpen("/3ds/PastaCFW/system.txt");
+			char tobewritten[2];
+			tobewritten[0] = cfw_FWValue;
+			tobewritten[1] = autoboot ? '1' : '0';
+			FSFileWrite(tobewritten, 2, 0);
+			FSFileClose();
 			break;
 		}
 		else if (pad_state & BUTTON_B) break; //EXIT WITHOUT SAVING 

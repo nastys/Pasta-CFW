@@ -158,6 +158,20 @@ void DrawDebug(u8 bottom, u8 newline, const char *format, ...) {
     if (newline) drawInternalY += 10;
 }
 
+void DrawSettingsDebug(u8 newline, const char *format, ...) {
+	char str[256];
+	va_list va;
+
+	va_start(va, format);
+	vsnprintf(str, 256, format, va);
+	va_end(va);
+
+	DrawString(SCREEN_AREA_BOT0, str, 10, drawInternalY, RGB(85, 85, 85), RGB(227, 227, 227));
+	DrawString(SCREEN_AREA_BOT1, str, 10, drawInternalY, RGB(85, 85, 85), RGB(227, 227, 227));
+
+	if (newline) drawInternalY += 10;
+}
+
 void DrawTopSplash(char splash_file[]) {
 	unsigned int n = 0, bin_size;
 	FSFileOpen(splash_file);
