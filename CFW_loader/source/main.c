@@ -222,11 +222,11 @@ void CFW_ARM9Dumper(void) {
 
 void CFW_Settings(void)
 {
+	TOP_Current = 0;
 	int settings_idx = 0;
 	while (true)
 	{
 		//DRAW GUI
-		DrawTopSplash("/3ds/PastaCFW/UI/appTOP.bin");
 		DrawBottomSplash("/3ds/PastaCFW/UI/options.bin");
 		TOP_Current = 0;
 		//APP CONTROLS
