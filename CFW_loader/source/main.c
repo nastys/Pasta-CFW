@@ -12,8 +12,8 @@
 char* cfw_FWString;
 //This is the System Firmware Version in system.txt
 char cfw_FWValue;
-//if true, dump the ARM9 ram
-bool cfw_arm9dump;
+//This is related to the ui autoboot
+bool cfw_bootGUI;
 
 //variables needed for menu and settings gui
 int menu_idx = 0;
@@ -46,44 +46,44 @@ void CFW_getSystemVersion(void) {
 		FSFileRead(settings, 16, 0);
 		FSFileClose();
 	}
-    cfw_FWValue = settings[0];
+	cfw_FWValue = settings[0];
 	switch (settings[0]) {
-    	case '1': // 4.x
-    		cfw_FWString = platform_FWStrings[0];
-    		break;
-    	case '2': // 5.0
-    		cfw_FWString = platform_FWStrings[1];
-    		break;
-    	case '3': // 5.1
-    		cfw_FWString = platform_FWStrings[2];
-    		break;
-    	case '4': // 6.0
-    		cfw_FWString = platform_FWStrings[3];
-    		break;
-    	case '5': // 6.1 - 6.3
-    		cfw_FWString = platform_FWStrings[4];
-    		break;
-    	case '6': // 7.0-7.1
-    		cfw_FWString = platform_FWStrings[5];
-    		break;
-    	case '7': // 7.2
-    		cfw_FWString = platform_FWStrings[6];
-    		break;
-    	case '8': // 8.x
-    		cfw_FWString = platform_FWStrings[7];
-    		break;
-    	case '9': // 9.x
-    		cfw_FWString = platform_FWStrings[8];
-    		break;
-    	case 'a': // 8.x
-    		cfw_FWString = platform_FWStrings[9];
-    		break;
-    	case 'b': // 9.x
-    		cfw_FWString = platform_FWStrings[10];
-    		break;
+	case '1': // 4.x
+		cfw_FWString = platform_FWStrings[0];
+		break;
+	case '2': // 5.0
+		cfw_FWString = platform_FWStrings[1];
+		break;
+	case '3': // 5.1
+		cfw_FWString = platform_FWStrings[2];
+		break;
+	case '4': // 6.0
+		cfw_FWString = platform_FWStrings[3];
+		break;
+	case '5': // 6.1 - 6.3
+		cfw_FWString = platform_FWStrings[4];
+		break;
+	case '6': // 7.0-7.1
+		cfw_FWString = platform_FWStrings[5];
+		break;
+	case '7': // 7.2
+		cfw_FWString = platform_FWStrings[6];
+		break;
+	case '8': // 8.x
+		cfw_FWString = platform_FWStrings[7];
+		break;
+	case '9': // 9.x
+		cfw_FWString = platform_FWStrings[8];
+		break;
+	case 'a': // 8.x
+		cfw_FWString = platform_FWStrings[9];
+		break;
+	case 'b': // 9.x
+		cfw_FWString = platform_FWStrings[10];
+		break;
 	}
 	//Check if to use the ARM9 Dumper
-	if (settings[2] == '1') cfw_arm9dump = true;
+	if (settings[1] == '1') cfw_bootGUI = true;
 }
 
 // @breif  Patch the offsets to pass the signs.
@@ -169,10 +169,10 @@ void CFW_NandDumper(void){
 				FSFileWrite(buf, nsectors*NAND_SECTOR_SIZE, count*NAND_SECTOR_SIZE*nsectors);
 				if ((count % (int)(NAND_SIZE / NAND_SECTOR_SIZE / nsectors / 100)) == 0 && count != 0)
 				{
-					char buffer[100];	
-					sprintf(buffer,"%d%%", PERCENTAGE);
-					DrawString(SCREEN_AREA_BOT0, buffer, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
-					DrawString(SCREEN_AREA_BOT1, buffer, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
+					char str[100];	
+					sprintf(str,"%d%%", PERCENTAGE);
+					DrawString(SCREEN_AREA_BOT0, str, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
+					DrawString(SCREEN_AREA_BOT1, str, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
 					PERCENTAGE++;
 				}
 			}
@@ -206,6 +206,10 @@ void CFW_ARM9Dumper(void) {
 				bytesWritten = FSFileWrite((u8 *)dumpAddr + currentWritten, currentSize, currentWritten);
 				if (bytesWritten != currentSize) break;
 				currentWritten += bytesWritten;
+				char str[100];
+				sprintf(str, "%lu%%", (currentWritten * 100) / fullSize);
+				DrawString(SCREEN_AREA_BOT0, str, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
+				DrawString(SCREEN_AREA_BOT1, str, 150, 195, RGB(255, 255, 255), RGB(187, 223, 249));
 			}
 			FSFileClose();
 			result = (fullSize == currentWritten);
@@ -247,10 +251,6 @@ void CFW_Boot(void){
 	DrawClearScreenAll();
 	DrawDebug(0,1, "--------------- PASTA CFW LOADER ---------------");
 	DrawDebug(0,1, "");
-	DrawDebug(0,0, "Getting system information...");
-	CFW_getSystemVersion();
-	DrawDebug(0,1, "Getting system information...              Done!");
-	DrawDebug(0,1, "");
 	DrawDebug(0,1, "Your system is %s", cfw_FWString);
 	DrawDebug(0,1, "");
 	CFW_SecondStage();
@@ -260,42 +260,47 @@ void CFW_Boot(void){
 int main(void) {
 
 	FSInit();
-	DrawClearScreenAll();
-
-	//MENU
-	while (true)
+	CFW_getSystemVersion();	
+	u32 khold = HID_STATE;
+	if (cfw_bootGUI==true || khold & BUTTON_L1) //If gui autoboot is enabled or L is held, show the ui //L held not working
 	{
-		//DRAW GUI
-		if (menu_idx == MENU_ITEMS - 1)
+		DrawClearScreenAll();
+		//MENU
+		while (true)
 		{
-			DrawTopSplash("/3ds/PastaCFW/UI/creditsTOP.bin");
-			DrawBottomSplash("/3ds/PastaCFW/UI/menu6.bin");
-			TOP_Current = 0;
-		}
-		else
-		{
-			char path[] = "/3ds/PastaCFW/UI/menu0.bin";
-			path[21] = menu_idx + 48;
-			DrawBottomSplash(path); //BOTTOM SCREEN
-			if(TOP_Current == 0){
-				DrawTopSplash("/3ds/PastaCFW/UI/menuTOP.bin"); //TOP SCREEN
-				TOP_Current =1;
+			//DRAW GUI
+			if (menu_idx == MENU_ITEMS - 1)
+			{
+				DrawTopSplash("/3ds/PastaCFW/UI/creditsTOP.bin");
+				DrawBottomSplash("/3ds/PastaCFW/UI/menu6.bin");
+				TOP_Current = 0;
+			}
+			else
+			{
+				char path[] = "/3ds/PastaCFW/UI/menu0.bin";
+				path[21] = menu_idx + 48;
+				DrawBottomSplash(path); //BOTTOM SCREEN
+				if (TOP_Current == 0){
+					DrawTopSplash("/3ds/PastaCFW/UI/menuTOP.bin"); //TOP SCREEN
+					TOP_Current = 1;
 				}
-		}
+			}
 
-		//MENU CONTROLS
-		u32 pad_state = HidWaitForInput();
-		if (pad_state & BUTTON_RIGHT && menu_idx != MENU_ITEMS - 1) menu_idx++; //MOVE RIGHT
-		else if (pad_state & BUTTON_LEFT && menu_idx != 0)menu_idx--; //MOVE LEFT
-		else if (pad_state & BUTTON_A)//SELECT
-		{
-			if (menu_idx == 0){ CFW_Boot(); break; }//BOOT CFW
-			else if (menu_idx == 1)break; //REBOOT
-			else if (menu_idx == 2)CFW_NandDumper(); //NAND DUMPER
-			else if (menu_idx == 4)CFW_ARM9Dumper(); //ARM9 RAM DUMPER
-			else if (menu_idx == 5)CFW_Settings(); //SETTINGS
+			//MENU CONTROLS
+			u32 pad_state = HidWaitForInput();
+			if (pad_state & BUTTON_RIGHT && menu_idx != MENU_ITEMS - 1) menu_idx++; //MOVE RIGHT
+			else if (pad_state & BUTTON_LEFT && menu_idx != 0)menu_idx--; //MOVE LEFT
+			else if (pad_state & BUTTON_A)//SELECT
+			{
+				if (menu_idx == 0){ CFW_Boot(); break; }//BOOT CFW
+				else if (menu_idx == 1)break; //REBOOT
+				else if (menu_idx == 2)CFW_NandDumper(); //NAND DUMPER
+				else if (menu_idx == 4)CFW_ARM9Dumper(); //ARM9 RAM DUMPER
+				else if (menu_idx == 5)CFW_Settings(); //SETTINGS
+			}
 		}
 	}
+	else CFW_Boot(); //else directly boot the cfw
 
 	// return control to FIRM ARM9 code (performs firmlaunch)
 	return 0;
