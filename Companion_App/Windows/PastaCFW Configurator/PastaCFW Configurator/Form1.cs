@@ -46,7 +46,7 @@ namespace PastaCFW_Configurator
                 label2.Text = "PastaCFW found!";
                 label2.ForeColor = Color.Green;
 
-                if (!File.Exists(path + "system.txt") || File.ReadAllText(path + "system.txt").Length != 3) prepareSettings(); //If settings.txt is not found or not complete, reset it
+                if (!File.Exists(path + "system.txt") || File.ReadAllText(path + "system.txt").Length != 2) prepareSettings(); //If settings.txt is not found or not complete, reset it
                 settings = File.ReadAllText(path + "system.txt");
                 type = settings[0];
                 auto_boot = settings[1];
@@ -89,7 +89,7 @@ namespace PastaCFW_Configurator
                         break;
                 }
                 //autoboot checkbox
-                if (auto_boot == '1') checkBox2.Checked = true;
+                if (auto_boot == '2') checkBox2.Checked = true;
                 else checkBox2.Checked = false;
             }
 
@@ -123,7 +123,7 @@ namespace PastaCFW_Configurator
         private void prepareSettings()
         {
             MessageBox.Show("Pasta CFW has been found but the system.txt file is not found or not complete. Press OK to create it.", "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            File.WriteAllText(path + "system.txt", "000");
+            File.WriteAllText(path + "system.txt", "00");
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -242,7 +242,7 @@ namespace PastaCFW_Configurator
             textBox3.AppendText("Saving the FIRM.bin");
             textBox3.AppendText(Environment.NewLine);
 
-            FileStream firm_writer = new FileStream("firm.bin", FileMode.Create);
+            FileStream firm_writer = new FileStream(comboBox1.SelectedItem + "3ds/PastaCFW/firm.bin", FileMode.Create);
             for (int i = 0; i < EXEFS_size-0x200; i++)
             {
                 firm_writer.WriteByte(firm[0x200 + i]);
